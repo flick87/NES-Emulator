@@ -437,3 +437,52 @@ uint8_t olc6502::CLC(){
 	return 0;
 }
 
+//Clear decimal bit
+uint8_t olc6502::CLD(){
+
+	SetFlag(D, false);
+	return 0;
+}
+
+//Clear Interrupt flag
+uint8_t olc6502::CLI(){
+
+	SetFlag(I, false);
+	return 0;
+}
+
+// clear overflow flag
+uint8_t olc6502::CLV(){
+
+	SetFlag(V, false);
+	return 0;
+}
+
+// // Instruction: Compare Accumulator
+// // Function:    C <- A >= M      Z <- (A - M) == 0
+// // Flags Out:   N, C, Z
+// uint8_t olc6502::CMP()
+// {
+// 	fetch();
+// 	temp = (uint16_t)a - (uint16_t)fetched;
+// 	SetFlag(C, a >= fetched);
+// 	SetFlag(Z, (temp & 0x00FF) == 0x0000);
+// 	SetFlag(N, temp & 0x0080);
+// 	return 1;
+// }
+
+
+
+//*************************** finish above later *********************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+uint8_t olc6502::ADC(){
+ 
+
+}
+
+
+uint8_t olc6502::SBC(){
+
+	
+}
