@@ -286,7 +286,7 @@ uint_fast8_t olc6502::REL(){
 
 uint8_t olc6502::fetch(){
 
-	if (!(lookup[opcode].addrmode == &olc6502::IMP)){
+	if (lookup[opcode].addrmode != &olc6502::IMP){
 		fetched = read(addr_abs);
 	}
 	return fetched;
@@ -458,27 +458,278 @@ uint8_t olc6502::CLV(){
 	return 0;
 }
 
-// // Instruction: Compare Accumulator
-// // Function:    C <- A >= M      Z <- (A - M) == 0
-// // Flags Out:   N, C, Z
-// uint8_t olc6502::CMP()
+
+// Compare acc
+uint8_t olc6502::CMP(){
+	uint16_t result = 0x0000;
+
+	fetch;
+	result = (uint16_t)a - (uid_t)fetched;
+	SetFlag(C, (result > -1));
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, (result & 0x0080));
+	return 1;
+}
+
+//Bitwise 'OR'
+uint8_t olc6502::EOR(){
+	fetch();
+	a = a ^ fetched;
+	SetFlag(Z, a == 0x00);
+	SetFlag(N, a & 0x80);
+	return 1;
+}
+
+//bitwise OR, not sure why there are two...
+uint8_t olc6502::ORA(){
+	fetch();
+	a |= fetched;
+	SetFlag(Z, a = 0x00);
+	SetFlag(N, a & 0x80);
+}
+
+
+//compare x register
+uint8_t olc6502::CPX(){
+	uint16_t result = 0x0000;
+
+	fetch();
+	result = (uint16_t)x - (uint16_t)fetched;
+	SetFlag(C, result > -1);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x080);
+	return 0;
+}
+
+//compare y register
+uint8_t olc6502::CPY(){
+	uint16_t result = 0x0000;
+	
+	fetch();
+	result = (uint16_t)y - (uint16_t)fetched;
+	SetFlag(C, result > -1);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x080);
+	return 0;
+}
+
+
+//Increment X register
+uint8_t olc6502::INX(){
+
+	x++;
+	SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
+	return 0;
+}
+
+//Increment Y register
+uint8_t olc6502::INY(){
+	
+	y++;
+	SetFlag(Z, y = 0x00);
+	SetFlag(N, y & 0x80);
+	return 0;
+}
+
+//Decrement X Register
+uint8_t olc6502::DEX()
+{
+	x--;
+	SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
+	return 0;
+}
+
+//Decrement Y Register
+uint8_t olc6502::DEY(){
+	y--;
+	SetFlag(Z, y = 0x00);
+	SetFlag(N, y & 0x80);
+	return 0;
+}
+
+//Decrement value at memory
+uint8_t olc6502::DEC(){
+	uint16_t result = 0x0000;
+
+	fetch();
+	result = fetched - 1;
+	write(addr_abs, result & 0x00FF);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x0000);
+	return 0;
+}
+
+//Increment value at memory
+uint8_t olc6502::INC(){
+	uint16_t result = 0x0000;
+	
+	fetch();
+	result = fetched + 1;
+	write(addr_abs, result & 0x00FF);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x0080);
+	return 0;
+}
+
+//Jump to Location
+uint8_t olc6502::JMP(){
+	pc = addr_abs;
+	return 0;
+}
+
+//jump to subroutine
+uint8_t olc6502::JSR(){
+	pc--;
+	write(0x0100 + stkp, (pc >> 8) & 0x00FF);
+	stkp--;
+	write(0x0100 + stkp, pc & 0x00FF);
+	stkp--;
+	pc = addr_abs;
+	return 0;
+}
+
+//load accumulator
+uint8_t olc6502::LDA(){
+	fetch();
+	a = fetched;
+	SetFlag(Z, a == 0x00);
+	SetFlag(N, a & 0x80);
+	return 1;
+}
+
+//load x register
+uint8_t olc6502::LDX(){
+	fetch();
+	x = fetched;
+	SetFlag(Z, x == 0x00);
+	SetFlag(N, x & 0x80);
+	return 1;
+}
+
+//load y register
+uint8_t olc6502::LDY(){
+	fetch();
+	y = fetched;
+	SetFlag(Z, y == 0x00);
+	SetFlag(N, y & 0x80);
+	return 1;
+}
+
+uint8_t olc6502::LSR(){
+	uint16_t result = 0x0000;
+
+	fetch();
+	SetFlag(C, fetched & 0x0001);
+	result = fetched >> 1;
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x0080);
+	if(lookup[opcode].addrmode == &olc6502::IMP){
+		a = result & 0x00FF;
+	}else {
+		write(addr_abs, result & 0x00FF);
+	}
+	return 0;
+}
+
+//https://wiki.nesdev.com/w/index.php/CPU_unofficial_opcodes
+uint8_t olc6502::NOP(){
+	switch(opcode){
+		case 0x1C:
+		case 0x3C:
+		case 0x5C:
+		case 0x7C:
+		case 0xDC:
+		case 0xFC:
+			return 1;
+			break;
+	}
+	return 0;
+}
+
+// push accumulator to stack
+uint8_t olc6502::PHA(){
+	write(0x0100 + stkp, a);
+	stkp--;
+	return 0;
+}
+
+//push status register to stack
+uint8_t olc6502::PHP(){
+	write(0x0100 + stkp, status | B | U);
+	SetFlag(B, 0);
+	SetFlag(U, 0);
+	stkp--;
+	return 0;
+}
+
+//pop accumulator from stack
+uint8_t olc6502::PLA(){
+	stkp++;
+	a = read(0x0100 + stkp);
+	SetFlag(Z, a = 0x00);
+	SetFlag(N, a & 0x80);
+	return 0;
+}
+
+//pop status register from stack
+uint8_t olc6502::PLP(){
+	stkp++;
+	status = read(0x0100 +stkp);
+	SetFlag(U, 1);
+	return 0;
+}
+
+uint8_t olc6502::ROL(){
+	uint16_t result = 0x0000;
+
+	fetch();
+	result = (uint16_t)(fetched << 1) | GetFlag(C);
+	SetFlag(C, result & 0xFF00);
+	SetFlag(Z, (result & 0x00FF) == 0x0000);
+	SetFlag(N, result & 0x0080);
+
+	if(lookup[opcode].addrmode == &olc6502::IMP){
+		a = result & 0x00FF;
+	}else {
+		write(addr_abs, result & 0x00FF);
+	}
+	return 0;
+}
+
+// uint8_t olc6502::ROR()
 // {
 // 	fetch();
-// 	temp = (uint16_t)a - (uint16_t)fetched;
-// 	SetFlag(C, a >= fetched);
-// 	SetFlag(Z, (temp & 0x00FF) == 0x0000);
+// 	temp = (uint16_t)(GetFlag(C) << 7) | (fetched >> 1);
+// 	SetFlag(C, fetched & 0x01);
+// 	SetFlag(Z, (temp & 0x00FF) == 0x00);
 // 	SetFlag(N, temp & 0x0080);
-// 	return 1;
+// 	if (lookup[opcode].addrmode == &olc6502::IMP)
+// 		a = temp & 0x00FF;
+// 	else
+// 		write(addr_abs, temp & 0x00FF);
+// 	return 0;
 // }
-
 
 
 //*************************** finish above later *********************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 uint8_t olc6502::ADC(){
- 
+	uint16_t sum = 0x0000;
 
+	fetch();
+	sum = (uint16_t)a + (uint16_t)fetched + (uint16_t)GetFlag(C);
+	SetFlag(C, sum > 255);
+	SetFlag(Z, (sum & 0x00FF) == 0);
+	SetFlag(N, sum & 0x80);
+
+	//overflow flag
+	SetFlag(V, (~((uint16_t)a ^ (uint16_t)fetched) & ((uint16_t)a ^ (uint16_t)sum)) & 0x0080);
+	a = sum & 0x00FF;
+	
+	return 1;
 }
 
 

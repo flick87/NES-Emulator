@@ -31,7 +31,7 @@ class olc6502{
         uint8_t x = 0x00; // X Register
         uint8_t y = 0x00; // Y Register
         uint8_t stkp = 0x00; // Stack Pointer
-        uint16_t pc = 0x00; // Program Counter
+        uint16_t pc = 0x00; // Program Counter(uint16_t)
         uint8_t status = 0x00; // Status Register
 
         void ConnectBus(Bus *n) { bus = n; }
@@ -66,7 +66,6 @@ class olc6502{
         uint8_t GetFlag(FLAGS6502 f);
         void    SetFlag(FLAGS6502 f, bool v);
         uint8_t fetch(); //internal data helper
-
 
         uint8_t fetched = 0x00; // where internal data is to be stored. Working input value to ALU
         uint16_t addr_abs = 0x0000; // All used memory addresses
